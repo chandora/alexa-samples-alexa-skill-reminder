@@ -31,15 +31,15 @@
       "isAvailableWorldwide": true,
       "locales": {
         "ja-JP": {
-          "description": "Sample Full Description",
+          "description": "リマインダーの使い方を紹介するサンプル・スキルです",
           "examplePhrases": [
-            "アレクサ、ハローワールドを開いて",
-            "こんにちは",
-            "ヘルプ"
+            "アレクサ、散歩コーチでリマインドして",
+            "アレクサ、散歩コーチで記録して",
+            "アレクサ、散歩コーチでリマインダーを解除して"
           ],
           "keywords": [],
           "name": "散歩コーチ",
-          "summary": "Sample Short Description"
+          "summary": "リマインダーのサンプル・スキル"
         }
       },
       "testingInstructions": "Sample Testing Instructions."
