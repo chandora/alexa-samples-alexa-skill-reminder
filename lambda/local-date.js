@@ -109,15 +109,6 @@ function main() {
     console.log(LocalDate.getSeconds(date));
     const startTime = new Date().getTime();
     for (let i = 0; i < 1000000; ++i) {
-        //*
-        new Date();
-        new Date();
-        new Date();
-        new Date();
-        new Date();
-        new Date();
-        new Date();
-        //*/
         LocalDate.getFullYear(date);
         LocalDate.getMonth(date);
         LocalDate.getDate(date);
