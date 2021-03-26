@@ -1,5 +1,5 @@
 {
-  "name": "Walking Coach",
+  "name": "walking-coach",
   "version": "1.2.0",
   "description": "alexa skill for demonstrating reminder usage",
   "main": "index.js",
