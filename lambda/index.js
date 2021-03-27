@@ -7,7 +7,7 @@ const sprintf = require('sprintf-js').sprintf;
 const ReminderDelayInMinutes = 2;
 const TokenToEnableReminder = 'TokenToEnableReminder';
 const TokenToDisableReminder = 'TokenToDisableReminder';
-const TokenToSkipReminder = 'TokenToDisableReminder';
+const TokenToSkipReminder = 'TokenToSkipReminder';
 
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
@@ -55,7 +55,7 @@ const RecordTaskIntentHandler = {
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'RecordTaskIntent';
     },
     async handle(handlerInput) {
-        console.log('RecordReminderInputHandler');
+        console.log('RecordTaskInputHandler');
 
         return await skipReminder(
             getReminderClient(handlerInput),
@@ -86,35 +86,39 @@ const ReminderPermissionResponseHandler = {
                     else if (token === TokenToDisableReminder) {
                         response = await disableReminder(reminderClient, responseBuilder);
                     }
-                    else if (token === TokenToSkipReminder) {
-                        response = await skipReminder(reminderClient, responseBuilder);
-                    }
                     else {
-                        console.log(`不明なトークン${token}`);
-                        response = handlerInput.responseBuilder
-                            .speak('内部エラーが発生しました。')
-                            .withShouldEndSession(true)
-                            .getResponse();
+                        response = await skipReminder(reminderClient, responseBuilder);
                     }
                     break;
                 case 'DENIED':
-                    response = handlerInput.responseBuilder
-                        .speak('許可を頂けなかったので、リマインダーは設定しませんでした。')
-                        .withShouldEndSession(true)
-                        .getResponse();
-                    break;
                 case 'NOT_ANSWERED':
+                    let operation;
+
+                    if (token === TokenToEnableReminder) {
+                        operation = '設定';
+                    }
+                    else if (token === TokenToDisableReminder) {
+                        operation = '解除';
+                    }
+                    else {
+                        operation = 'スキップ';
+                    }
+
+                    const msg =
+                        `リマインダーにアクセスする許可を頂けなかったので、リマインダーの${operation}はしていません。` +
+                        'アクセスを許可する場合は、再度リクエストを繰り返すか、Alexaアプリのホーム画面で、リマインダーへのアクセスを許可してください。';
+
                     if (!payload.isCardThrown) {
                         response = handlerInput.responseBuilder
-                            .speak('リマインダーを設定するには、リマインダーへのアクセス許可が必要です。' +
-                                'Alexaアプリのホーム画面で、リマインダーへのアクセスを許可してください。')
-                            .withAskForPermissionsConsentCard(['alexa::alerts:reminders:skill:readwrite'])
+                            .speak(msg)
+                            .withAskForPermissionsConsentCard(
+                                ['alexa::alerts:reminders:skill:readwrite'])
                             .withShouldEndSession(true)
                             .getResponse();
                     }
                     else {
                         response = handlerInput.responseBuilder
-                            .speak('許可を頂けなかったので、リマインダーは設定しませんでした。')
+                            .speak(msg)
                             .withShouldEndSession(true)
                             .getResponse();
                     }
@@ -127,6 +131,13 @@ const ReminderPermissionResponseHandler = {
                         .withShouldEndSession(true)
                         .getResponse();
             }
+        }
+        else if (status.code === '204') {
+            console.log(`AskForReminder failed: ${status.code}, ${status.message}`);
+            response = handlerInput.responseBuilder
+                .speak('リクエストの処理を打ち切ります。')
+                .withShouldEndSession(true)
+                .getResponse();
         }
         else {
             console.log(`AskForReminder failed: ${status.code}, ${status.message}`);
@@ -172,7 +183,7 @@ async function getReminders(reminderClient) {
 }
 
 function buildGrantRemindersAccessResponse(responseBuilder, token) {
-    console.log('grantRemindersAccessPermission');
+    console.log('buildGrantRemindersAccessPermission');
 
     return response = responseBuilder
         .addDirective({
@@ -193,7 +204,7 @@ async function enableReminder(reminderClient, responseBuilder) {
 
     const reminders = await getReminders(reminderClient, TokenToEnableReminder);
 
-    if (reminders.alerts) {
+    if (reminders) {
         // アクセス権が付与されている
         for (const alert of reminders.alerts) {
             // 既存のリマインダーを削除
@@ -215,7 +226,7 @@ async function enableReminder(reminderClient, responseBuilder) {
             await reminderClient.createReminder(reminderRequest);
 
             return responseBuilder
-                .speak('リマインダーを設定しました。')
+                .speak(`リマインダーを${recurrenceTime.byHour}時${recurrenceTime.byMinute}分${recurrenceTime.bySecond}秒に設定しました。`)
                 .withShouldEndSession(true)
                 .getResponse();
         }
@@ -242,7 +253,7 @@ async function enableReminder(reminderClient, responseBuilder) {
         // アクセス権が付与されていない
         // Alexaにユーザーからアクセス権を取得するように依頼する
         return buildGrantRemindersAccessResponse(
-            handlerInput.responseBuilder,
+            responseBuilder,
             TokenToEnableReminder);
     }
 }
@@ -253,7 +264,7 @@ async function disableReminder(reminderClient, responseBuilder) {
     const reminders = await getReminders(reminderClient);
     let response;
 
-    if (reminders.alerts) {
+    if (reminders) {
         // アクセス権が付与されている
         if (reminders.alerts.length > 0) {
             // 既存のリマインダーがある
@@ -326,9 +337,8 @@ const ReminderDateTimeString = '%d-%02d-%02dT%02d:%02d:%02d';
 // 今日の午前零時を返す
 function getStartDateTimeStringToday() {
     const now = new Date();
-    let dateTimeString;
 
-    dateTimeString = sprintf(ReminderDateTimeString,
+    const dateTimeString = sprintf(ReminderDateTimeString,
         LocalDate.getFullYear(now),
         LocalDate.getMonth(now) + 1,
         LocalDate.getDate(now),
@@ -362,7 +372,7 @@ async function skipReminder(reminderClient, responseBuilder) {
     const reminders = await getReminders(reminderClient);
     let response;
 
-    if (reminders.alerts) {
+    if (reminders) {
         // アクセス権が付与されている
         if (reminders.alerts.length > 0) {
             // 既存のリマインダーがある
@@ -371,7 +381,7 @@ async function skipReminder(reminderClient, responseBuilder) {
                 const now = new Date();
                 const recurrenceTime = {};
                 recurrenceTime.byHour = LocalDate.getHours(now);
-                recurrenceTime.byMinute = LocalDate.getMinutes(now) + ReminderDelayInMinutes + 3;
+                recurrenceTime.byMinute = LocalDate.getMinutes(now) + ReminderDelayInMinutes;
                 recurrenceTime.bySecond = LocalDate.getSeconds(now);
                 const newReminder = buildReminderRequest(
                     getStartDateTimeStringTomorrow(),
@@ -379,10 +389,10 @@ async function skipReminder(reminderClient, responseBuilder) {
                 await reminderClient.deleteReminder(reminder.alertToken);
                 await reminderClient.createReminder(newReminder);
                 // 本来下記のように開始日のみ書き換えて更新すれば良い。
-                // 複数デバイスがある時に、リマインダを作成したデバイス以外に更新が伝わらない
+                // 複数デバイスがあるときに、リマインダを作成したデバイス以外に更新が伝わらない
                 // という現象があり、削除と作成を組み合わせている。
                 // reminder.trigger.recurrence.startDateTime = getStartDateTimeStringTomorrow();
-                // await reminderClient.updateReminder(reminder.alertToken, newReminder);
+                // await reminderClient.updateReminder(reminder.alertToken, reminder);
             }
 
             response = responseBuilder
@@ -393,7 +403,7 @@ async function skipReminder(reminderClient, responseBuilder) {
         else {
             // 既存のリマインダーは無い
             response = responseBuilder
-                .speak('リマインダーは設定されていません。')
+                .speak('お疲れさまです。リマインダーは設定されていません。')
                 .withShouldEndSession(true)
                 .getResponse();
         }
@@ -408,7 +418,6 @@ async function skipReminder(reminderClient, responseBuilder) {
 
     return response;
 }
-
 
 /**
  * Test
