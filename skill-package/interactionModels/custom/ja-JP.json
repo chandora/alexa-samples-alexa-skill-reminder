@@ -19,7 +19,7 @@
           "name": "HelloWorldIntent",
           "slots": [],
           "samples": [
-            "hello2",
+            "hello3",
             "ハロー",
             "こんにちは"
           ]
