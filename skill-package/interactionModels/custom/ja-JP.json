@@ -19,7 +19,7 @@
           "name": "HelloWorldIntent",
           "slots": [],
           "samples": [
-            "hello3",
+            "hello",
             "ハロー",
             "こんにちは"
           ]
@@ -40,5 +40,5 @@
       "types": []
     }
   },
-  "version": "14"
+  "version": "13"
 }
