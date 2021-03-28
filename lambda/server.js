@@ -4,4 +4,4 @@ const skill = require('./index.js').skill;
 const app = express();
 const adapter = new ExpressAdapter(skill, true, true);
 app.post('/', adapter.getRequestHandlers());
-app.listen(3000)
+app.listen(3000);
