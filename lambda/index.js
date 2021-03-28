@@ -367,7 +367,7 @@ function getStartDateTimeStringTomorrow() {
 }
 
 async function skipReminder(reminderClient, responseBuilder) {
-    console.log('skipReminderToday');
+    console.log('skipReminder');
 
     const reminders = await getReminders(reminderClient);
     let response;
@@ -419,157 +419,6 @@ async function skipReminder(reminderClient, responseBuilder) {
     return response;
 }
 
-/**
- * Test
- */
-const TestIntentHandler = {
-    canHandle(handlerInput) {
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'TestIntent';
-    },
-    async handle(handlerInput) {
-        const reminderClient = getReminderClient(handlerInput);
-        const reminders = await getReminders(reminderClient);
-        for (const reminder of reminders.alerts) {
-            await reminderClient.deleteReminder(reminder.alertToken);
-        }
-
-        // await testWithOldFormat(reminderClient);
-        await testWithNewFormat(reminderClient);
-
-        return handlerInput.responseBuilder
-            .speak('リマインダーを設定しました。')
-            .withShouldEndSession(true)
-            .getResponse();
-    }
-};
-
-async function testWithOldFormat(reminderClient) {
-    // const reminderRequest = buildOldReminderRequest(getReminderDateTimeToday());
-    const reminderRequest = buildOldReminderRequest(getReminderDateTimeTomorrow());
-    console.log(reminderRequest);
-    const result = await reminderClient.createReminder(reminderRequest);
-    const reminder = await reminderClient.getReminder(result.alertToken);
-    console.log(reminder);
-}
-
-async function testWithNewFormat(reminderClient) {
-    const now = new Date();
-    const recurrenceTime = {};
-    recurrenceTime.byHour = LocalDate.getHours(now);
-    recurrenceTime.byMinute = LocalDate.getMinutes(now) + 1;
-    recurrenceTime.bySecond = LocalDate.getSeconds(now);
-    console.log(recurrenceTime);
-
-    // const startDateTime = getStartDateTimeStringToday();
-    const startDateTime = getStartDateTimeStringToday();
-    const reminderRequest = buildReminderRequest(startDateTime, recurrenceTime);
-    console.log(reminderRequest);
-
-    const result = await reminderClient.createReminder(reminderRequest);
-    let reminder;
-    reminder = await reminderClient.getReminder(result.alertToken);
-    console.log(reminder);
-    // reminder.trigger.recurrence.startDateTime = getStartDateTimeStringTomorrow();
-    // recurrenceTime.byMinute += 1;
-    reminder = buildReminderRequest(getStartDateTimeStringTomorrow(), recurrenceTime);
-    await reminderClient.updateReminder(result.alertToken, reminder);
-
-    reminder = await reminderClient.getReminder(result.alertToken);
-    console.log(reminder);
-}
-
-function getReminderDateTimeToday() {
-    const now = new Date();
-    let time = now.getTime();
-    time += 1 * 60 * 1000;
-    now.setTime(time);
-
-    const dateTimeString = sprintf(ReminderDateTimeString,
-        LocalDate.getFullYear(now),
-        LocalDate.getMonth(now) + 1,
-        LocalDate.getDate(now),
-        LocalDate.getHours(now),                          // Hours
-        LocalDate.getMinutes(now),                          // Minutes
-        LocalDate.getSeconds(now)                           // Seconds
-    );
-
-    return dateTimeString;
-}
-
-function getReminderDateTimeTomorrow() {
-    const now = new Date();
-    let time = now.getTime();
-    time += 1 * 60 * 1000;
-    now.setTime(time);
-    const nextDate = LocalDate.nextDate(now);
-    const dateTimeString = sprintf(ReminderDateTimeString,
-        LocalDate.getFullYear(nextDate),
-        LocalDate.getMonth(nextDate) + 1,
-        LocalDate.getDate(nextDate),
-        LocalDate.getHours(nextDate),                          // Hours
-        LocalDate.getMinutes(nextDate),                          // Minutes
-        LocalDate.getSeconds(nextDate)                           // Seconds
-    );
-
-    return dateTimeString;
-}
-
-const ListIntentHandler = {
-    canHandle(handlerInput) {
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'ListIntent';
-    },
-    async handle(handlerInput) {
-        const reminderClient = getReminderClient(handlerInput);
-        const reminders = await getReminders(reminderClient);
-
-        for (const reminder of reminders.alerts) {
-            console.log(JSON.stringify(reminder));
-        }
-
-        return handlerInput.responseBuilder
-            .speak(`${reminders.alerts.length}件のリマインダーがありました。`)
-            .withShouldEndSession(true)
-            .getResponse();
-    }
-};
-
-function buildOldReminderRequest(scheduledTime) {
-    const reminderText = '散歩の時間（旧）';
-    const now = new Date();
-    const createTime = LocalDate.toISOStringNZ(now);
-
-    const ssmlText = `<speak>散歩をしてください。</speak>`;
-    const reminderRequest = {
-        createTime: createTime,
-        trigger: {
-            type: "SCHEDULED_ABSOLUTE",
-            scheduledTime: scheduledTime,
-            offsetInSeconds: 0,
-            timeZoneId: 'Asia/Tokyo', // Default is the device's timezone
-            recurrence: {
-                freq: 'DAILY',
-                interval: 0
-            }
-        },
-        alertInfo: {
-            spokenInfo: {
-                content: [{
-                    locale: 'ja-JP',
-                    text: reminderText,
-                    ssml: ssmlText
-                }]
-            }
-        },
-        pushNotification: {
-            status: 'ENABLED'
-        }
-    }
-
-    return reminderRequest;
-}
-
 const CancelAndStopIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
@@ -594,7 +443,7 @@ const FallbackIntentHandler = {
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.FallbackIntent';
     },
     handle(handlerInput) {
-        const speakOutput = 'すみません、良くわかりませんでしたね。言い直してみてください。!';
+        const speakOutput = 'すみません、良くわかりませんでした。言い直してみてください。!';
 
         return handlerInput.responseBuilder
             .speak(speakOutput)
@@ -670,8 +519,6 @@ const handlers = Alexa.SkillBuilders.custom()
         DisableReminderIntentHandler,
         ReminderPermissionResponseHandler,
         RecordTaskIntentHandler,
-        TestIntentHandler,
-        ListIntentHandler,
         CancelAndStopIntentHandler,
         FallbackIntentHandler,
         SessionEndedRequestHandler,

@@ -23,6 +23,7 @@
           "name": "EnableReminderIntent",
           "slots": [],
           "samples": [
+            "コーチして",
             "リマインダーを開始して",
             "リマインドして"
           ]
