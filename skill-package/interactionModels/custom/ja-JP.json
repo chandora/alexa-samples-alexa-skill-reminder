@@ -27,10 +27,18 @@
         {
           "name": "AMAZON.NavigateHomeIntent",
           "samples": []
+        },
+        {
+          "name": "EnableReminderIntent",
+          "slots": [],
+          "samples": [
+            "リマインダーを開始して",
+            "リマインドして"
+          ]
         }
       ],
       "types": []
     }
   },
-  "version": "1"
+  "version": "14"
 }
