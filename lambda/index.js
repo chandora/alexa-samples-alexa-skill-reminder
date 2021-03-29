@@ -183,7 +183,7 @@ async function getReminders(reminderClient) {
 }
 
 function buildGrantRemindersAccessResponse(responseBuilder, token) {
-    console.log('buildGrantRemindersAccessPermission');
+    console.log('buildGrantRemindersAccessResponse');
 
     return response = responseBuilder
         .addDirective({
